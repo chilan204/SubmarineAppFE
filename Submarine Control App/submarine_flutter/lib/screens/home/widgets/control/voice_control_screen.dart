@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import '../l10n/translations.dart';
-import '../models/command.dart';
-import '../providers/app_provider.dart';
-import '../theme.dart';
-import '../widgets/sound_bars.dart';
-import '../widgets/stat_tile.dart';
+import '../../../../l10n/translations.dart';
+import '../../../../models/command.dart';
+import '../../../../providers/app_provider.dart';
+import '../../../../theme.dart';
+import '../../../../widgets/sound_bars.dart';
+import '../../../../widgets/stat_tile.dart';
 
 // Command parsing — mirrors parseCommand() in VoiceControlScreen.tsx
 Map<String, dynamic> _parseCommand(String text, Lang lang) {
