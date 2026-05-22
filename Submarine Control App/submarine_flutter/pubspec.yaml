@@ -1,0 +1,45 @@
+name: submarine_flutter
+description: NAUTICOM Submarine Control System
+publish_to: 'none'
+version: 2.4.1+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Map (OSM, free - no API key required)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+  # Voice recognition
+  speech_to_text: ^7.0.0
+
+  # State management
+  provider: ^6.1.2
+
+  # Animations
+  flutter_animate: ^4.5.0
+
+  # Date formatting
+  intl: ^0.20.2
+
+  # HTTP for tile layer
+  http: ^1.2.1
+
+  # Space Mono — same monospace look as the React app
+  google_fonts: ^6.2.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
