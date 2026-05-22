@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
-import 'screens/login_screen.dart';
+import 'screens/login/login_screen.dart';
 import 'screens/home/home.dart';
 import 'theme.dart';
 import 'widgets/background_wrapper.dart';
@@ -39,8 +39,8 @@ class _AppRoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // final isLoggedIn = context.watch<AppProvider>().isLoggedIn;
-    final isLoggedIn = true;
+    final isLoggedIn = context.watch<AppProvider>().isLoggedIn;
+    // final isLoggedIn = true;
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 400),

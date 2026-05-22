@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import '../l10n/translations.dart';
-import '../providers/app_provider.dart';
-import '../theme.dart';
-import '../widgets/background_wrapper.dart';
-import '../widgets/lang_toggle.dart';
+import '../../l10n/translations.dart';
+import '../../providers/app_provider.dart';
+import '../../theme.dart';
+import '../../widgets/background_wrapper.dart';
+import '../../widgets/lang_toggle.dart';
 
 // BackgroundWrapper is applied in main.dart — login adds grid/sonar overlay only.
 

@@ -5,8 +5,8 @@ import 'package:submarine_flutter/widgets/lang_toggle.dart';
 import '../../../l10n/translations.dart';
 import '../../../providers/app_provider.dart';
 
-class TopBar extends StatelessWidget {
-  const TopBar({super.key});
+class HomeTopBar extends StatelessWidget {
+  const HomeTopBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class TopBar extends StatelessWidget {
         bottom: 8,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF050f1e).withOpacity(0.7),
+        color: const Color(0xFF050f1e).withValues(alpha: 0.7),
         border: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(

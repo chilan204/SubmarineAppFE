@@ -216,14 +216,7 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
               style: const TextStyle(color: AppColors.muted, fontSize: 11),
             ),
           ),
-          const Text(
-            'COMBAT SYS v2.4',
-            style: TextStyle(
-              color: Color(0x6600ffaa),
-              fontSize: 10,
-              letterSpacing: 1.5,
-            ),
-          ),
+
         ],
       ),
     );
@@ -315,10 +308,11 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
 
   Widget _buildEmptyState(AppTranslations t, AppProvider provider) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.waves, size: 48, color: Color(0x3300ffaa)),
             const SizedBox(height: 16),
@@ -422,13 +416,7 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            t.cmdHint,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                color: Color(0x4D8899aa), fontSize: 10),
-          ),
+
         ],
       ),
     );

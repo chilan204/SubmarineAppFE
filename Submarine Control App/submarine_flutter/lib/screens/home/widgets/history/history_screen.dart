@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../l10n/translations.dart';
-import '../models/command.dart';
-import '../providers/app_provider.dart';
-import '../theme.dart';
+import '../../../../l10n/translations.dart';
+import '../../../../models/command.dart';
+import '../../../../providers/app_provider.dart';
+import '../../../../theme.dart';
 
 enum _FilterType { all, successful, unsuccessful }
 
