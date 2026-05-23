@@ -38,6 +38,10 @@ class SubPosition {
 
 class AppProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
+  String? _authToken;
+  String? _username;
+  String? _displayName;
+  String? _role;
   int _activeTab = 0;
   List<Command> _commandHistory = [];
   int _missionSeconds = 0;
@@ -45,13 +49,26 @@ class AppProvider extends ChangeNotifier {
   Timer? _missionTimer;
 
   bool get isLoggedIn => _isLoggedIn;
+  String? get authToken => _authToken;
+  String? get username => _username;
+  String? get displayName => _displayName;
+  String? get role => _role;
   int get activeTab => _activeTab;
   List<Command> get commandHistory => _commandHistory;
   int get missionSeconds => _missionSeconds;
   Lang get lang => _lang;
   AppTranslations get t => AppTranslations(_lang);
 
-  void login() {
+  void login({
+    String? token,
+    String? username,
+    String? name,
+    String? role,
+  }) {
+    _authToken = token;
+    _username = username;
+    _displayName = name;
+    _role = role;
     _isLoggedIn = true;
     _missionSeconds = 0;
     _missionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -63,6 +80,10 @@ class AppProvider extends ChangeNotifier {
 
   void logout() {
     _isLoggedIn = false;
+    _authToken = null;
+    _username = null;
+    _displayName = null;
+    _role = null;
     _commandHistory = [];
     _missionSeconds = 0;
     _activeTab = 0;

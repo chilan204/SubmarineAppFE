@@ -35,7 +35,7 @@ class HomeTopBar extends StatelessWidget {
               border: Border.all(color: AppColors.border),
             ),
             child: Text(
-              provider.lang == Lang.vi ? 'Sĩ Quan' : 'Officer',
+              provider.t.roleTitle(provider.role),
               style: const TextStyle(
                   color: AppColors.accent, fontSize: 11, letterSpacing: 1),
             ),

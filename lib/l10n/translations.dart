@@ -11,30 +11,34 @@ class AppTranslations {
 
   // Login
   String get loginSubtitle => isVi
-      ? 'Hệ thống điều khiển tàu ngầm v2.4.1'
-      : 'Submarine Control System v2.4.1';
+      ? 'HỆ THỐNG ĐIỀU KHIỂN TÀU NGẦM'
+      : 'SUBMARINE CONTROL SYSTEM';
   String get selectAuth =>
       isVi ? 'Chọn phương thức xác thực' : 'Select authentication method';
   String get voiceAuth => isVi ? 'Xác thực giọng nói' : 'Voice Authentication';
   String get voiceAuthDesc =>
-      isVi ? 'Nhận dạng cụm từ bí mật' : 'Secret phrase recognition';
+        isVi ? 'Nhận dạng cụm từ bí mật' : 'Secret phrase recognition';
   String get passwordAuth => isVi ? 'Mật khẩu bảo mật' : 'Secure Password';
   String get passwordAuthDesc =>
       isVi ? 'Nhập thông tin đăng nhập' : 'Enter credentials';
   String get usernameLabel => isVi ? 'TÊN ĐĂNG NHẬP' : 'USERNAME';
   String get passwordLabel => isVi ? 'MẬT KHẨU' : 'PASSWORD';
   String get authenticate => isVi ? 'XÁC THỰC' : 'AUTHENTICATE';
-  String get back => isVi ? '← Quay lại' : '← Back';
-  String get hint => isVi ? 'Gợi ý: admin / SUBMARINE2024' : 'Hint: admin / SUBMARINE2024';
+  String get back => isVi ? '← Quay lại' : '← Go back';
   String get wrongCreds => isVi
       ? 'Thông tin không đúng. Vui lòng thử lại.'
       : 'Invalid credentials. Please try again.';
-  String get sayPhrase => isVi ? 'Hãy nói cụm từ bí mật:' : 'Say the secret phrase:';
+  String get networkError => isVi
+      ? 'Không kết nối được máy chủ. Kiểm tra backend đang chạy.'
+      : 'Cannot reach server. Ensure the backend is running.';
+  String get sayPhrase => isVi ? 'Hãy nói gì đó' : 'Please say something';
   String get voicePhrase =>
       isVi ? '"kích hoạt tàu ngầm"' : '"activate submarine"';
   String get pressmic =>
       isVi ? 'Nhấn microphone để bắt đầu' : 'Press microphone to begin';
   String get listening => isVi ? 'Đang lắng nghe...' : 'Listening...';
+  String get verifying =>
+      isVi ? 'Đang xác thực giọng nói...' : 'Verifying voice...';
   String get authSuccess =>
       isVi ? 'Xác thực thành công!' : 'Authentication successful!';
   String get authFailed => isVi
@@ -42,9 +46,6 @@ class AppTranslations {
       : 'Phrase not matched. Say: "activate submarine"';
   String get online =>
       isVi ? 'HỆ THỐNG TRỰC TUYẾN' : 'SYSTEM ONLINE';
-  String get classified => isVi
-      ? 'MẬT — CHỈ DÀNH CHO NHÂN SỰ ĐÃ ĐƯỢC PHÊ DUYỆT'
-      : 'CLASSIFIED — AUTHORIZED PERSONNEL ONLY';
   String get voiceNotSupported =>
       isVi ? 'Không hỗ trợ nhận dạng giọng nói' : 'Voice recognition not supported';
   String get voiceError =>
@@ -110,4 +111,20 @@ class AppTranslations {
   String get statusSuccess => isVi ? 'Thành công' : 'Success';
   String get statusWarning => isVi ? 'Cảnh báo' : 'Warning';
   String get statusError => isVi ? 'Khẩn cấp' : 'Emergency';
+
+  // Role title translation based on role code
+  String roleTitle(String? roleCode) {
+    if (roleCode == null || roleCode.isEmpty) {
+      return isVi ? 'Sĩ Quan' : 'Officer';
+    }
+    if (roleCode == 'ADMIN') {
+      return isVi ? 'Quản trị' : 'Admin';
+    }
+    if (roleCode.startsWith('OFFICER_')) {
+      final level = roleCode.split('_')[1];
+      return isVi ? 'Sĩ quan $level' : 'Officer $level';
+    }
+    // fallback to raw code if unrecognized
+    return roleCode;
+  }
 }
