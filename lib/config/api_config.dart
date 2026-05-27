@@ -20,7 +20,14 @@ class ApiConfig {
     }
   }
 
+  /// WebSocket base — derives ws:// from the HTTP baseUrl.
+  static String get wsBaseUrl =>
+      baseUrl.replaceFirst('http://', 'ws://').replaceFirst('https://', 'wss://');
+
   static String get passwordLogin => '$baseUrl/api/auth/password-login';
   static String get voiceLogin => '$baseUrl/api/auth/voice-login';
   static String get mySessions => '$baseUrl/api/user-session/me';
+
+  /// Real-time telemetry WebSocket (matches Spring Boot TelemetryHandler at /ws).
+  static String get telemetryWs => '$wsBaseUrl/ws';
 }

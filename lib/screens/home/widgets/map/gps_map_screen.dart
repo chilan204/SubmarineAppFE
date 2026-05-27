@@ -6,7 +6,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../../../l10n/translations.dart';
 import '../../../../providers/app_provider.dart';
+import '../../../../services/telemetry_service.dart';
 import '../../../../theme.dart';
+import '../../../../widgets/stat_tile.dart';
 
 class GpsMapScreen extends StatefulWidget {
   const GpsMapScreen({super.key});
@@ -16,12 +18,13 @@ class GpsMapScreen extends StatefulWidget {
 }
 
 class _GpsMapScreenState extends State<GpsMapScreen> {
-  // Submarine state — mirrors the React useState values
+  // Submarine state — updated from WebSocket, fallback to simulation
   double _lat = 10.82;
   double _lng = 108.20;
   double _depth = -35;
   double _heading = 60;
   double _speed = 4.2;
+  double _pressure = 3.5;
 
   // Trail — last 40 positions
   final List<LatLng> _trail = [
@@ -32,20 +35,72 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
   ];
 
   bool _showPopup = false;
-  Timer? _moveTimer;
+  Timer? _fallbackTimer;
   final MapController _mapCtrl = MapController();
+
+  // WebSocket telemetry
+  late final TelemetryService _telemetry;
+  StreamSubscription<TelemetryData>? _dataSub;
+  StreamSubscription<bool>? _statusSub;
+  bool _wsConnected = false;
 
   @override
   void initState() {
     super.initState();
-    // Animate submarine every 2 seconds — mirrors the React useEffect
-    _moveTimer = Timer.periodic(const Duration(seconds: 2), (_) => _moveSub());
+
+    _telemetry = TelemetryService();
+    _telemetry.connect();
+
+    // Listen for real telemetry data from WebSocket
+    _dataSub = _telemetry.stream.listen(_onTelemetryData);
+
+    // Track connection status
+    _statusSub = _telemetry.statusStream.listen((connected) {
+      if (!mounted) return;
+      setState(() => _wsConnected = connected);
+
+      if (connected) {
+        // WebSocket connected — stop fallback simulation
+        _fallbackTimer?.cancel();
+        _fallbackTimer = null;
+      } else {
+        // WebSocket disconnected — start fallback simulation
+        _startFallbackSimulation();
+      }
+    });
+
+    // Start fallback simulation until WebSocket connects
+    _startFallbackSimulation();
   }
 
   @override
   void dispose() {
-    _moveTimer?.cancel();
+    _fallbackTimer?.cancel();
+    _dataSub?.cancel();
+    _statusSub?.cancel();
+    _telemetry.dispose();
     super.dispose();
+  }
+
+  /// Called when a telemetry message arrives from the WebSocket.
+  void _onTelemetryData(TelemetryData data) {
+    if (!mounted) return;
+    setState(() {
+      _lat = data.latitude;
+      _lng = data.longitude;
+      _depth = data.depth;
+      _heading = data.heading;
+      _speed = data.speed;
+      _pressure = data.pressure;
+      _trail.add(LatLng(data.latitude, data.longitude));
+      if (_trail.length > 40) _trail.removeAt(0);
+    });
+  }
+
+  /// Fallback simulation when WebSocket is not available.
+  void _startFallbackSimulation() {
+    if (_fallbackTimer != null) return;
+    _fallbackTimer = Timer.periodic(const Duration(seconds: 2), (_) => _moveSub());
   }
 
   void _moveSub() {
@@ -76,8 +131,11 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
 
     return Column(
       children: [
-        // ── Info bar
-        _buildInfoBar(t),
+        // ── Row 1: Coordinates
+        _buildCoordinateBar(t),
+
+        // ── Row 2: Metrics (depth, speed, heading, pressure)
+        _buildMetrics(t),
 
         // ── Map
         Expanded(
@@ -128,13 +186,14 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
                         Marker(
                           point: LatLng(_lat + 0.08, _lng),
                           width: 200,
-                          height: 120,
+                          height: 140,
                           child: _SubPopup(
                             lat: _lat,
                             lng: _lng,
                             depth: _depth,
                             speed: _speed,
                             heading: _heading,
+                            pressure: _pressure,
                             t: t,
                           ),
                         ),
@@ -150,14 +209,7 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
                 ),
               ),
 
-              // Compass overlay (top-right)
-              Positioned(
-                top: 12,
-                right: 12,
-                child: _CompassWidget(heading: _heading),
-              ),
-
-              // Live tracking pill (bottom-left)
+              // Live tracking pill (bottom-left) — shows connection status
               Positioned(
                 bottom: 12,
                 left: 12,
@@ -171,7 +223,7 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
                 child: Text(
                   '© OpenStreetMap contributors',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Colors.white.withValues(alpha: 0.4),
                     fontSize: 8,
                   ),
                 ),
@@ -183,55 +235,88 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
     );
   }
 
-  Widget _buildInfoBar(AppTranslations t) {
+  /// Row 1 — Latitude / Longitude coordinates
+  Widget _buildCoordinateBar(AppTranslations t) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: AppColors.surface.withOpacity(0.7),
+      color: AppColors.surface.withValues(alpha: 0.7),
       child: Row(
         children: [
           const Icon(Icons.navigation, color: AppColors.accent, size: 16),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_lat.toStringAsFixed(4)}°N, ${_lng.toStringAsFixed(4)}°E',
-                style: const TextStyle(
-                    color: AppColors.accent, fontSize: 12),
-              ),
-              Text(t.currentPos,
-                  style:
-                      const TextStyle(color: AppColors.muted, fontSize: 9)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_lat.toStringAsFixed(4)}°N, ${_lng.toStringAsFixed(4)}°E',
+                  style: const TextStyle(color: AppColors.accent, fontSize: 12),
+                ),
+                Text(t.currentPos,
+                    style: const TextStyle(color: AppColors.muted, fontSize: 9)),
+              ],
+            ),
           ),
-          const Spacer(),
-          _statChip('${_depth.toStringAsFixed(0)}m', t.depth, AppColors.blue),
-          const SizedBox(width: 12),
-          _statChip('${_heading.toStringAsFixed(0)}°', t.heading, AppColors.amber),
-          const SizedBox(width: 12),
-          _statChip('${_speed.toStringAsFixed(1)} kn', t.speed, AppColors.accent),
         ],
       ),
     );
   }
 
-  Widget _statChip(String value, String label, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(value,
-            style: TextStyle(color: color, fontSize: 12)),
-        Text(label,
-            style: const TextStyle(color: AppColors.muted, fontSize: 9)),
-      ],
+  /// Row 2 — Depth, Speed, Heading, Pressure (using StatTile)
+  Widget _buildMetrics(AppTranslations t) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.accent.withValues(alpha: 0.1)),
+          bottom: BorderSide(color: AppColors.accent.withValues(alpha: 0.1)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+              child: StatTile(
+                  icon: Icons.navigation,
+                  label: t.depth,
+                  value: '${_depth.toStringAsFixed(0)}m',
+                  color: AppColors.blue)),
+          _divider(),
+          Expanded(
+              child: StatTile(
+                  icon: Icons.speed,
+                  label: t.speed,
+                  value: '${_speed.toStringAsFixed(1)} kn',
+                  color: AppColors.accent)),
+          _divider(),
+          Expanded(
+              child: StatTile(
+                  icon: Icons.explore,
+                  label: t.heading,
+                  value: '${_heading.toStringAsFixed(0)}°',
+                  color: AppColors.amber)),
+          _divider(),
+          Expanded(
+              child: StatTile(
+                  icon: Icons.waves,
+                  label: t.pressure,
+                  value: '${_pressure.toStringAsFixed(1)} atm',
+                  color: AppColors.pink)),
+        ],
+      ),
     );
   }
 
+  Widget _divider() => Container(width: 1, height: 48, color: AppColors.border);
+
   Widget _buildTrackingPill(Lang lang) {
+    final statusText = _wsConnected
+        ? (lang == Lang.vi ? 'TRỰC TIẾP' : 'LIVE')
+        : (lang == Lang.vi ? 'MÔ PHỎNG' : 'SIMULATED');
+    final statusColor = _wsConnected ? AppColors.accent : AppColors.amber;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.85),
+        color: AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
@@ -241,16 +326,16 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
           Container(
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.accent,
+              color: statusColor,
             ),
           ),
           const SizedBox(width: 6),
           Text(
-            lang == Lang.vi ? 'ĐANG THEO DÕI' : 'TRACKING LIVE',
-            style: const TextStyle(
-                color: AppColors.accent, fontSize: 10, letterSpacing: 1),
+            statusText,
+            style: TextStyle(
+                color: statusColor, fontSize: 10, letterSpacing: 1),
           ),
         ],
       ),
@@ -289,7 +374,7 @@ class _SubmarinePainter extends CustomPainter {
       Offset(cx, cy),
       16,
       Paint()
-        ..color = AppColors.accent.withOpacity(0.3)
+        ..color = AppColors.accent.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
@@ -297,7 +382,7 @@ class _SubmarinePainter extends CustomPainter {
     // Hull (ellipse)
     canvas.drawOval(
       Rect.fromCenter(center: Offset(cx, cy + 2), width: 28, height: 12),
-      Paint()..color = AppColors.accent.withOpacity(0.9),
+      Paint()..color = AppColors.accent.withValues(alpha: 0.9),
     );
 
     // Conning tower
@@ -325,7 +410,7 @@ class _SubmarinePainter extends CustomPainter {
 // Info popup shown when submarine marker is tapped
 // ──────────────────────────────────────────────────────
 class _SubPopup extends StatelessWidget {
-  final double lat, lng, depth, speed, heading;
+  final double lat, lng, depth, speed, heading, pressure;
   final AppTranslations t;
   const _SubPopup({
     required this.lat,
@@ -333,6 +418,7 @@ class _SubPopup extends StatelessWidget {
     required this.depth,
     required this.speed,
     required this.heading,
+    required this.pressure,
     required this.t,
   });
 
@@ -363,60 +449,10 @@ class _SubPopup extends StatelessWidget {
               style: const TextStyle(color: Colors.white70, fontSize: 10)),
           Text('${t.heading}: ${heading.toStringAsFixed(0)}°',
               style: const TextStyle(color: Colors.white70, fontSize: 10)),
+          Text('${t.pressure}: ${pressure.toStringAsFixed(1)} atm',
+              style: const TextStyle(color: Colors.white70, fontSize: 10)),
         ],
       ),
     );
-  }
-}
-
-// ──────────────────────────────────────────────────────
-// Compass overlay widget
-// ──────────────────────────────────────────────────────
-class _CompassWidget extends StatelessWidget {
-  final double heading;
-  const _CompassWidget({required this.heading});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.surface.withOpacity(0.85),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Transform.rotate(
-            angle: heading * math.pi / 180,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(width: 2, height: 16, color: AppColors.accent),
-                Container(width: 2, height: 12, color: AppColors.muted),
-              ],
-            ),
-          ),
-          // Cardinal labels
-          const Positioned(top: 4, child: _CardinalLabel('N', AppColors.accent)),
-          const Positioned(bottom: 4, child: _CardinalLabel('S', AppColors.muted)),
-          const Positioned(left: 4, child: _CardinalLabel('W', AppColors.muted)),
-          const Positioned(right: 4, child: _CardinalLabel('E', AppColors.muted)),
-        ],
-      ),
-    );
-  }
-}
-
-class _CardinalLabel extends StatelessWidget {
-  final String letter;
-  final Color color;
-  const _CardinalLabel(this.letter, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(letter, style: TextStyle(color: color, fontSize: 8));
   }
 }
