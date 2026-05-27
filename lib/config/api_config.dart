@@ -27,6 +27,7 @@ class ApiConfig {
   static String get passwordLogin => '$baseUrl/api/auth/password-login';
   static String get voiceLogin => '$baseUrl/api/auth/voice-login';
   static String get mySessions => '$baseUrl/api/user-session/me';
+  static String get voiceCommand => '$baseUrl/api/voice-command';
 
   /// Real-time telemetry WebSocket (matches Spring Boot TelemetryHandler at /ws).
   static String get telemetryWs => '$wsBaseUrl/ws';

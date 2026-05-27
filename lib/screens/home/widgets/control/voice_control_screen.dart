@@ -1,11 +1,18 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../../../l10n/translations.dart';
 import '../../../../models/command.dart';
+import '../../../../models/voice_command_response.dart';
 import '../../../../providers/app_provider.dart';
+import '../../../../services/telemetry_service.dart';
+import '../../../../services/voice_command_service.dart';
 import '../../../../theme.dart';
+import '../../../../utils/audio_file.dart';
 import '../../../../widgets/sound_bars.dart';
 import '../../../../widgets/stat_tile.dart';
 
@@ -56,6 +63,7 @@ class VoiceControlScreen extends StatefulWidget {
 class _VoiceControlScreenState extends State<VoiceControlScreen> {
   final List<Command> _commands = [];
   bool _isListening = false;
+  bool _isSending = false;
   String _transcript = '';
   String _inputText = '';
   String _status = '';
@@ -69,20 +77,48 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
   final ScrollController _scrollCtrl = ScrollController();
   final TextEditingController _textCtrl = TextEditingController();
 
+  // Audio recording for WAV capture
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  String? _recordPath;
+  final VoiceCommandService _voiceCommandService = VoiceCommandService();
+
+  // WebSocket telemetry — shared data source with GpsMapScreen
+  late final TelemetryService _telemetry;
+  StreamSubscription<TelemetryData>? _telemetrySub;
+
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
     _initSpeech();
+
+    // Connect to WebSocket for real-time telemetry
+    _telemetry = TelemetryService();
+    _telemetry.connect();
+    _telemetrySub = _telemetry.stream.listen(_onTelemetryData);
   }
 
   Future<void> _initSpeech() async {
     _speechReady = await _speech.initialize();
   }
 
+  /// Update metrics from WebSocket telemetry data.
+  void _onTelemetryData(TelemetryData data) {
+    if (!mounted) return;
+    setState(() {
+      _depth = data.depth;
+      _speed = data.speed;
+      _heading = data.heading;
+      _pressure = data.pressure;
+    });
+  }
+
   @override
   void dispose() {
+    _telemetrySub?.cancel();
+    _telemetry.dispose();
     _speech.stop();
+    _audioRecorder.dispose();
     _scrollCtrl.dispose();
     _textCtrl.dispose();
     super.dispose();
@@ -112,56 +148,157 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
     );
     provider.addCommand(cmd);
 
-    final lower = text.toLowerCase();
+    // Metrics are now driven by WebSocket telemetry — no local mutation
     setState(() {
       _commands.add(cmd);
-      if (lower.contains('lặn') || lower.contains('dive')) {
-        _depth = (_depth - 15).clamp(-150, 0);
-      }
-      if (lower.contains('nổi') || lower.contains('surface')) {
-        _depth = (_depth + 15).clamp(-150, 0);
-      }
-      if (lower.contains('tiến') || lower.contains('forward')) _speed = 5.0;
-      if (lower.contains('dừng') || lower.contains('stop')) _speed = 0;
-      if (lower.contains('trái') || lower.contains('left')) {
-        _heading = (_heading - 15 + 360) % 360;
-      }
-      if (lower.contains('phải') || lower.contains('right')) {
-        _heading = (_heading + 15) % 360;
-      }
     });
     _scrollToBottom();
   }
 
   Future<void> _startListening(AppProvider provider) async {
-    if (!_speechReady) return;
+    if (_isSending) return;
     final lang = provider.lang;
+
+    // Start WAV recording in parallel with speech-to-text
+    if (!kIsWeb) {
+      try {
+        if (await _audioRecorder.hasPermission()) {
+          final dir = await getTemporaryDirectory();
+          final path =
+              '${dir.path}/voice_cmd_${DateTime.now().millisecondsSinceEpoch}.wav';
+          await _audioRecorder.start(
+            const RecordConfig(
+              encoder: AudioEncoder.wav,
+              sampleRate: 16000,
+              numChannels: 1,
+            ),
+            path: path,
+          );
+          _recordPath = path;
+        }
+      } catch (e) {
+        debugPrint('[VoiceControl] Record start error: $e');
+      }
+    }
+
     setState(() {
       _isListening = true;
       _status = provider.t.listeningCmd;
     });
-    await _speech.listen(
-      localeId: lang == Lang.vi ? 'vi_VN' : 'en_US',
-      onResult: (result) {
-        setState(() => _transcript = result.recognizedWords);
-        if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-          _addCommand(result.recognizedWords.trim(), provider);
-          setState(() {
-            _transcript = '';
-            _status = provider.t.cmdReceived;
-          });
-        }
-      },
-    );
+
+    if (_speechReady) {
+      await _speech.listen(
+        localeId: lang == Lang.vi ? 'vi_VN' : 'en_US',
+        onResult: (result) {
+          setState(() => _transcript = result.recognizedWords);
+        },
+      );
+    }
   }
 
-  void _stopListening(AppProvider provider) {
+  Future<void> _stopListening(AppProvider provider) async {
+    if (!_isListening || _isSending) return;
+
     _speech.stop();
+    final recordedPath = await _audioRecorder.stop();
+    final path = recordedPath ?? _recordPath;
+    final capturedTranscript = _transcript;
+
     setState(() {
       _isListening = false;
-      _status = provider.t.systemReady;
+      _isSending = true;
       _transcript = '';
+      _status = provider.t.sendingAudio;
     });
+
+    // If we have a WAV file AND an auth token, send to backend
+    if (path != null && provider.authToken != null) {
+      try {
+        final bytes = await readAudioBytes(path);
+        if (bytes.isNotEmpty) {
+          setState(() => _status = provider.t.processingCmd);
+          final result = await _voiceCommandService.sendVoiceCommand(
+            audioBytes: bytes,
+            token: provider.authToken!,
+          );
+          if (mounted) {
+            _handleApiResponse(result, capturedTranscript, provider);
+          }
+        } else {
+          // Empty audio file — fallback to local parsing
+          if (capturedTranscript.isNotEmpty) {
+            _addCommand(capturedTranscript, provider);
+          }
+        }
+      } catch (e) {
+        debugPrint('[VoiceControl] Send error: $e');
+        // Fallback to local parsing on network error
+        if (capturedTranscript.isNotEmpty && mounted) {
+          _addCommand(capturedTranscript, provider);
+        }
+      } finally {
+        await deleteAudioFile(path);
+      }
+    } else {
+      // No recording or no token — fallback to local parsing
+      if (capturedTranscript.isNotEmpty) {
+        _addCommand(capturedTranscript, provider);
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isSending = false;
+        _status = provider.t.systemReady;
+      });
+    }
+  }
+
+  void _handleApiResponse(
+    VoiceCommandResult result,
+    String transcript,
+    AppProvider provider,
+  ) {
+    final t = provider.t;
+    final data = result.data;
+    final status = data?.status ?? '';
+
+    // Determine command status and response message
+    CommandStatus cmdStatus;
+    String response;
+
+    if (result.success && status == 'EXECUTED') {
+      cmdStatus = CommandStatus.success;
+      final detail = data?.command;
+      response = detail != null
+          ? '${t.cmdExecuted}: ${detail.action ?? ''} ${detail.direction ?? ''} ${detail.value ?? ''}'
+              .trim()
+          : t.cmdExecuted;
+    } else if (status == 'SPEAKER_VERIFICATION_FAILED') {
+      cmdStatus = CommandStatus.error;
+      response = t.speakerFailed;
+    } else if (status == 'ROLE_DENIED') {
+      cmdStatus = CommandStatus.warning;
+      response = '${t.roleDenied} (${data?.role ?? ""})';
+    } else if (status == 'INVALID_COMMAND') {
+      cmdStatus = CommandStatus.warning;
+      response = t.invalidCommand;
+    } else {
+      cmdStatus = CommandStatus.error;
+      response = result.message ?? t.cmdRejected;
+    }
+
+    final cmd = Command(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: data?.text ?? transcript,
+      timestamp: DateTime.now(),
+      status: cmdStatus,
+      response: response,
+    );
+
+    provider.addCommand(cmd);
+    setState(() => _commands.add(cmd));
+    _scrollToBottom();
   }
 
   void _sendTextCommand(AppProvider provider) {
@@ -364,10 +501,12 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
             children: [
               // Mic button
               _MicButton(
-                isListening: _isListening,
-                onTap: () => _isListening
-                    ? _stopListening(provider)
-                    : _startListening(provider),
+                isListening: _isListening || _isSending,
+                onTap: _isSending
+                    ? null
+                    : () => _isListening
+                        ? _stopListening(provider)
+                        : _startListening(provider),
               ),
               const SizedBox(width: 12),
 
@@ -395,12 +534,12 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
 
               // Send button
               GestureDetector(
-                onTap: _isListening || _inputText.trim().isEmpty
+                onTap: _isListening || _isSending || _inputText.trim().isEmpty
                     ? null
                     : () => _sendTextCommand(provider),
                 child: Opacity(
                   opacity:
-                      _isListening || _inputText.trim().isEmpty ? 0.3 : 1.0,
+                      _isListening || _isSending || _inputText.trim().isEmpty ? 0.3 : 1.0,
                   child: Container(
                     width: 44,
                     height: 44,
@@ -428,8 +567,8 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
 // ─────────────────────────────────────────────────────────
 class _MicButton extends StatefulWidget {
   final bool isListening;
-  final VoidCallback onTap;
-  const _MicButton({required this.isListening, required this.onTap});
+  final VoidCallback? onTap;
+  const _MicButton({required this.isListening, this.onTap});
 
   @override
   State<_MicButton> createState() => _MicButtonState();

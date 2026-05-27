@@ -24,7 +24,7 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
   double _depth = -35;
   double _heading = 60;
   double _speed = 4.2;
-  double _pressure = 3.5;
+  double _pressure = 100.0;
 
   // Trail — last 40 positions
   final List<LatLng> _trail = [
@@ -108,16 +108,16 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
     final rad = (_heading * math.pi) / 180;
     var newLat = _lat + math.cos(rad) * 0.003;
     var newLng = _lng + math.sin(rad) * 0.003;
-    var newHeading = _heading;
+    // var newHeading = _heading;
 
-    // Bounce at boundary — mirrors the React heading flip logic
-    if (newLat > 12 || newLat < 9) newHeading = (newHeading + 180) % 360;
-    if (newLng > 110 || newLng < 106) newHeading = (360 - newHeading + 180) % 360;
+    // // Bounce at boundary — mirrors the React heading flip logic
+    // if (newLat > 12 || newLat < 9) newHeading = (newHeading + 180) % 360;
+    // if (newLng > 110 || newLng < 106) newHeading = (360 - newHeading + 180) % 360;
 
     setState(() {
       _lat = newLat;
       _lng = newLng;
-      _heading = newHeading;
+      // _heading = newHeading;
       _trail.add(LatLng(newLat, newLng));
       if (_trail.length > 40) _trail.removeAt(0);
     });

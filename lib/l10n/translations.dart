@@ -81,6 +81,13 @@ class AppTranslations {
   List<String> get quickCmds => isVi
       ? ['Lặn xuống', 'Nổi lên', 'Tiến về phía trước', 'Dừng lại', 'Quay trái', 'Kiểm tra hệ thống']
       : ['Dive', 'Surface', 'Move Forward', 'Stop', 'Turn Left', 'Check Systems'];
+  String get sendingAudio => isVi ? 'Đang gửi âm thanh...' : 'Sending audio...';
+  String get processingCmd => isVi ? 'Đang xử lý lệnh...' : 'Processing command...';
+  String get cmdExecuted => isVi ? 'Lệnh đã thực thi' : 'Command executed';
+  String get speakerFailed => isVi ? 'Xác minh người nói thất bại' : 'Speaker verification failed';
+  String get roleDenied => isVi ? 'Không có quyền thực hiện lệnh' : 'Role permission denied';
+  String get invalidCommand => isVi ? 'Không nhận diện được lệnh' : 'Invalid command';
+  String get cmdRejected => isVi ? 'Lệnh bị từ chối' : 'Command rejected';
 
   // GPS
   String get currentPos => isVi ? 'VỊ TRÍ HIỆN TẠI' : 'CURRENT POSITION';
