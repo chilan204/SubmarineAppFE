@@ -1,43 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../l10n/translations.dart';
-import '../../../../models/command.dart';
+import '../../../../models/user_session_record.dart';
 import '../../../../providers/app_provider.dart';
 import '../../../../theme.dart';
 
 enum _FilterType { all, successful, unsuccessful }
-
-// Initial demo commands seeded to match HistoryScreen.tsx
-List<Command> _initialCommands(Lang lang) {
-  final now = DateTime.now();
-  if (lang == Lang.vi) {
-    return [
-      Command(id: 'h1', text: 'Kiểm tra hệ thống', timestamp: now.subtract(const Duration(hours: 1)), status: CommandStatus.success, response: 'Tất cả hệ thống bình thường. Pin: 87%. Oxy: 94%'),
-      Command(id: 'h2', text: 'Lặn xuống 50m', timestamp: now.subtract(const Duration(minutes: 53)), status: CommandStatus.success, response: 'Đang thực hiện lặn xuống. Độ sâu mục tiêu: -50m'),
-      Command(id: 'h3', text: 'Tiến về phía trước', timestamp: now.subtract(const Duration(minutes: 46)), status: CommandStatus.success, response: 'Động cơ đẩy kích hoạt. Tốc độ 5 hải lý/h'),
-      Command(id: 'h4', text: 'Phóng ngư lôi', timestamp: now.subtract(const Duration(minutes: 40)), status: CommandStatus.warning, response: 'CẢNH BÁO: Cần xác nhận từ chỉ huy cấp cao'),
-      Command(id: 'h5', text: 'Quay trái 15 độ', timestamp: now.subtract(const Duration(minutes: 33)), status: CommandStatus.success, response: 'Bánh lái trái 15°. Đang điều hướng'),
-      Command(id: 'h6', text: 'Chế độ tàng hình', timestamp: now.subtract(const Duration(minutes: 26)), status: CommandStatus.success, response: 'Hệ thống âm học tắt. Chế độ im lặng kích hoạt'),
-      Command(id: 'h7', text: 'Khẩn cấp nổi lên', timestamp: now.subtract(const Duration(minutes: 20)), status: CommandStatus.error, response: 'KHẨN CẤP: Thổi két nước dằn. Nổi lên khẩn cấp!'),
-      Command(id: 'h8', text: 'Kiểm tra sonar', timestamp: now.subtract(const Duration(minutes: 13)), status: CommandStatus.success, response: 'Sonar hoạt động bình thường. Không phát hiện mục tiêu'),
-      Command(id: 'h9', text: 'Dừng lại', timestamp: now.subtract(const Duration(minutes: 6)), status: CommandStatus.success, response: 'Hệ thống đẩy dừng. Giữ vị trí hiện tại'),
-      Command(id: 'h10', text: 'Nổi lên', timestamp: now.subtract(const Duration(minutes: 2)), status: CommandStatus.success, response: 'Đang nổi lên. Độ sâu mục tiêu: 0m'),
-    ];
-  } else {
-    return [
-      Command(id: 'h1', text: 'Check systems', timestamp: now.subtract(const Duration(hours: 1)), status: CommandStatus.success, response: 'All systems normal. Battery: 87%. Oxygen: 94%'),
-      Command(id: 'h2', text: 'Dive to 50m', timestamp: now.subtract(const Duration(minutes: 53)), status: CommandStatus.success, response: 'Executing dive. Target depth: -50m'),
-      Command(id: 'h3', text: 'Move forward', timestamp: now.subtract(const Duration(minutes: 46)), status: CommandStatus.success, response: 'Propulsion engaged. Speed: 5 knots'),
-      Command(id: 'h4', text: 'Launch torpedo', timestamp: now.subtract(const Duration(minutes: 40)), status: CommandStatus.warning, response: 'WARNING: Requires senior command confirmation'),
-      Command(id: 'h5', text: 'Turn left 15°', timestamp: now.subtract(const Duration(minutes: 33)), status: CommandStatus.success, response: 'Rudder left 15°. Navigating'),
-      Command(id: 'h6', text: 'Stealth mode', timestamp: now.subtract(const Duration(minutes: 26)), status: CommandStatus.success, response: 'Acoustic systems off. Silent mode activated'),
-      Command(id: 'h7', text: 'Emergency surface', timestamp: now.subtract(const Duration(minutes: 20)), status: CommandStatus.error, response: 'EMERGENCY: Blowing ballast tanks. Emergency ascent!'),
-      Command(id: 'h8', text: 'Sonar check', timestamp: now.subtract(const Duration(minutes: 13)), status: CommandStatus.success, response: 'Sonar operating normally. No targets detected'),
-      Command(id: 'h9', text: 'Stop', timestamp: now.subtract(const Duration(minutes: 6)), status: CommandStatus.success, response: 'Propulsion stopped. Holding position'),
-      Command(id: 'h10', text: 'Surface', timestamp: now.subtract(const Duration(minutes: 2)), status: CommandStatus.success, response: 'Surfacing. Target depth: 0m'),
-    ];
-  }
-}
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -53,28 +21,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppProvider>().fetchUserSessions();
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  bool _isSuccessful(Command cmd) => cmd.status == CommandStatus.success;
-  bool _isUnsuccessful(Command cmd) =>
-      cmd.status == CommandStatus.warning || cmd.status == CommandStatus.error;
+  bool _isSuccessful(UserSessionRecord cmd) => cmd.commandStatus == 'EXECUTED';
+  bool _isUnsuccessful(UserSessionRecord cmd) =>
+      cmd.commandStatus != 'EXECUTED';
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final t = provider.t;
     final lang = provider.lang;
-    final initial = _initialCommands(lang);
-    final all = [...initial, ...provider.commandHistory]
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    
+    List<UserSessionRecord> all = List.from(provider.userSessions);
+    all.sort((a, b) => (b.createdDate ?? DateTime.now()).compareTo(a.createdDate ?? DateTime.now()));
 
     final filtered = all.where((cmd) {
+      final transcript = cmd.transcript ?? '';
+      final action = cmd.action ?? '';
+      
       final matchSearch = _search.isEmpty ||
-          cmd.text.toLowerCase().contains(_search.toLowerCase()) ||
-          cmd.response.toLowerCase().contains(_search.toLowerCase());
+          transcript.toLowerCase().contains(_search.toLowerCase()) ||
+          action.toLowerCase().contains(_search.toLowerCase());
       final matchFilter = _filter == _FilterType.all ||
           (_filter == _FilterType.successful && _isSuccessful(cmd)) ||
           (_filter == _FilterType.unsuccessful && _isUnsuccessful(cmd));
@@ -94,21 +73,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
         // ── List
         Expanded(
-          child: filtered.isEmpty
-              ? _buildEmpty(t)
-              : ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (_, i) => _CommandRow(
-                    cmd: filtered[i],
-                    t: t,
-                    lang: lang,
-                    isExpanded: _expandedId == filtered[i].id,
-                    onTap: () => setState(() {
-                      _expandedId =
-                          _expandedId == filtered[i].id ? null : filtered[i].id;
-                    }),
-                  ),
-                ),
+          child: provider.isLoadingSessions
+              ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+              : provider.sessionsError != null
+                  ? Center(
+                      child: Text(
+                        'Error: ${provider.sessionsError}',
+                        style: const TextStyle(color: AppColors.red, fontSize: 13),
+                      ),
+                    )
+                  : filtered.isEmpty
+                      ? _buildEmpty(t)
+                      : RefreshIndicator(
+                          onRefresh: () => provider.fetchUserSessions(),
+                          color: AppColors.accent,
+                          backgroundColor: AppColors.surface,
+                          child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount: filtered.length,
+                            itemBuilder: (_, i) => _CommandRow(
+                              cmd: filtered[i],
+                              t: t,
+                              lang: lang,
+                              isExpanded: _expandedId == filtered[i].id.toString(),
+                              onTap: () => setState(() {
+                                _expandedId =
+                                    _expandedId == filtered[i].id.toString() ? null : filtered[i].id.toString();
+                              }),
+                            ),
+                          ),
+                        ),
         ),
 
         // ── Footer
@@ -139,27 +133,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ],
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: () {/* export placeholder */},
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.download_outlined,
-                          color: AppColors.accent, size: 14),
-                      const SizedBox(width: 4),
-                      Text(t.exportReport,
-                          style: const TextStyle(
-                              color: AppColors.accent, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -294,7 +267,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 // Single command row with expandable detail panel
 // ─────────────────────────────────────────────────────────────────
 class _CommandRow extends StatelessWidget {
-  final Command cmd;
+  final UserSessionRecord cmd;
   final AppTranslations t;
   final Lang lang;
   final bool isExpanded;
@@ -309,36 +282,24 @@ class _CommandRow extends StatelessWidget {
   });
 
   Color get _color {
-    switch (cmd.status) {
-      case CommandStatus.success:
-        return AppColors.accent;
-      case CommandStatus.warning:
-        return AppColors.amber;
-      case CommandStatus.error:
-        return AppColors.red;
-    }
+    final status = cmd.commandStatus;
+    if (status == 'EXECUTED') return AppColors.accent;
+    if (status == 'WARNING') return AppColors.amber;
+    return AppColors.red;
   }
 
   IconData get _icon {
-    switch (cmd.status) {
-      case CommandStatus.success:
-        return Icons.check_circle_outline;
-      case CommandStatus.warning:
-        return Icons.warning_amber_rounded;
-      case CommandStatus.error:
-        return Icons.warning_rounded;
-    }
+    final status = cmd.commandStatus;
+    if (status == 'EXECUTED') return Icons.check_circle_outline;
+    if (status == 'WARNING') return Icons.warning_amber_rounded;
+    return Icons.warning_rounded;
   }
 
   String get _statusLabel {
-    switch (cmd.status) {
-      case CommandStatus.success:
-        return t.statusSuccess;
-      case CommandStatus.warning:
-        return t.statusWarning;
-      case CommandStatus.error:
-        return t.statusError;
-    }
+    final status = cmd.commandStatus;
+    if (status == 'EXECUTED') return t.statusSuccess;
+    if (status == 'WARNING') return t.statusWarning;
+    return t.statusError;
   }
 
   String _timeAgo(DateTime dt) {
@@ -392,7 +353,7 @@ class _CommandRow extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          cmd.text,
+                          cmd.transcript ?? 'No transcript',
                           style: const TextStyle(
                               color: Colors.white, fontSize: 13),
                           overflow: TextOverflow.ellipsis,
@@ -404,7 +365,7 @@ class _CommandRow extends StatelessWidget {
                           const Icon(Icons.access_time,
                               color: AppColors.muted, size: 11),
                           const SizedBox(width: 3),
-                          Text(_timeAgo(cmd.timestamp),
+                          Text(cmd.createdDate != null ? _timeAgo(cmd.createdDate!) : '',
                               style: const TextStyle(
                                   color: AppColors.muted, fontSize: 10)),
                         ],
@@ -413,7 +374,7 @@ class _CommandRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    cmd.response,
+                    '${cmd.action ?? '-'} | ${cmd.direction ?? '-'} | ${cmd.value ?? '-'}',
                     style: const TextStyle(
                         color: AppColors.muted, fontSize: 11),
                     maxLines: isExpanded ? null : 1,
@@ -462,15 +423,15 @@ class _CommandRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _detailField(t.timeLabel, _fullTime(cmd.timestamp), _color)),
+              Expanded(child: _detailField(t.timeLabel, cmd.createdDate != null ? _fullTime(cmd.createdDate!) : '', _color)),
               const SizedBox(width: 16),
               Expanded(child: _detailField(t.statusLabel, _statusLabel, _color)),
             ],
           ),
           const SizedBox(height: 8),
-          _detailField(t.sysResponse, cmd.response, Colors.white70),
+          _detailField('Action Details', 'Action: ${cmd.action}\nDirection: ${cmd.direction}\nValue: ${cmd.value}', Colors.white70),
           const SizedBox(height: 6),
-          _detailField(t.cmdId, '#${cmd.id.toUpperCase()}', AppColors.muted),
+          _detailField(t.cmdId, '#${cmd.id}', AppColors.muted),
         ],
       ),
     );

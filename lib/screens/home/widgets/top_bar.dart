@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:submarine_flutter/theme.dart';
 import 'package:submarine_flutter/widgets/lang_toggle.dart';
-import '../../../l10n/translations.dart';
 import '../../../providers/app_provider.dart';
 
 class HomeTopBar extends StatelessWidget {

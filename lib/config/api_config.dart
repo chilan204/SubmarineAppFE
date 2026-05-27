@@ -22,4 +22,5 @@ class ApiConfig {
 
   static String get passwordLogin => '$baseUrl/api/auth/password-login';
   static String get voiceLogin => '$baseUrl/api/auth/voice-login';
+  static String get mySessions => '$baseUrl/api/user-session/me';
 }

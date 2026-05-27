@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/command.dart';
+import '../models/user_session_record.dart';
+import '../services/user_session_service.dart';
 import '../l10n/translations.dart';
 
 // Submarine position state for the GPS map
@@ -48,6 +50,12 @@ class AppProvider extends ChangeNotifier {
   Lang _lang = Lang.vi;
   Timer? _missionTimer;
 
+  // API State for User Sessions
+  List<UserSessionRecord> _userSessions = [];
+  bool _isLoadingSessions = false;
+  String? _sessionsError;
+  final UserSessionService _sessionService = UserSessionService();
+
   bool get isLoggedIn => _isLoggedIn;
   String? get authToken => _authToken;
   String? get username => _username;
@@ -58,6 +66,10 @@ class AppProvider extends ChangeNotifier {
   int get missionSeconds => _missionSeconds;
   Lang get lang => _lang;
   AppTranslations get t => AppTranslations(_lang);
+
+  List<UserSessionRecord> get userSessions => _userSessions;
+  bool get isLoadingSessions => _isLoadingSessions;
+  String? get sessionsError => _sessionsError;
 
   void login({
     String? token,
@@ -85,6 +97,7 @@ class AppProvider extends ChangeNotifier {
     _displayName = null;
     _role = null;
     _commandHistory = [];
+    _userSessions = [];
     _missionSeconds = 0;
     _activeTab = 0;
     _missionTimer?.cancel();
@@ -92,9 +105,36 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setActiveTab(int index) {
-    _activeTab = index;
+  Future<void> fetchUserSessions() async {
+    if (_authToken == null) {
+      _sessionsError = 'Not authenticated';
+      notifyListeners();
+      return;
+    }
+
+    _isLoadingSessions = true;
+    _sessionsError = null;
     notifyListeners();
+
+    try {
+      final sessions = await _sessionService.fetchMySessions(_authToken!);
+      _userSessions = sessions;
+    } catch (e) {
+      _sessionsError = e.toString();
+    } finally {
+      _isLoadingSessions = false;
+      notifyListeners();
+    }
+  }
+
+  void setActiveTab(int index) {
+    if (_activeTab != index) {
+      _activeTab = index;
+      if (index == 2) {
+        fetchUserSessions();
+      }
+      notifyListeners();
+    }
   }
 
   void addCommand(Command cmd) {
