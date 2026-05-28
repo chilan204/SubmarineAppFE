@@ -9,15 +9,7 @@ class ApiConfig {
   static const int serverPort = 8080;
 
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:$serverPort';
-    }
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:$serverPort';
-      default:
-        return 'http://localhost:$serverPort';
-    }
+    return 'http://100.78.229.2:$serverPort';
   }
 
   /// WebSocket base — derives ws:// from the HTTP baseUrl.
