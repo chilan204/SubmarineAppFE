@@ -69,7 +69,7 @@ class VoiceLoginData {
       userId: (json['userId'] as num?)?.toInt(),
       username: json['username'] as String?,
       name: json['name'] as String?,
-      role: json['role'] as String?,
+      role: (json['roleCode'] ?? json['role']) as String?,
       speaker: json['speaker'] as String?,
       verificationScore: (json['verificationScore'] as num?)?.toDouble(),
       text: json['text'] as String?,

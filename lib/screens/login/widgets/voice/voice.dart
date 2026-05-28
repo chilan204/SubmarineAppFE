@@ -115,7 +115,7 @@ class _VoiceState extends State<Voice> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _stopAndVerify(AppTranslations t) async {
+  Future<void> _stopAndVerify(AppTranslations t, Lang lang) async {
     if (!_isListening || _isVerifying) return;
 
     _speech.stop();
@@ -150,7 +150,10 @@ class _VoiceState extends State<Voice> with TickerProviderStateMixin {
         return;
       }
 
-      final result = await _authApi.voiceLogin(audioBytes: bytes);
+      final result = await _authApi.voiceLogin(
+        audioBytes: bytes,
+        language: lang == Lang.vi ? 'vi' : 'en',
+      );
       if (!mounted) return;
 
       if (result.success && result.data != null) {
@@ -189,8 +192,8 @@ class _VoiceState extends State<Voice> with TickerProviderStateMixin {
     }
   }
 
-  void _stopListening(AppTranslations t) {
-    _stopAndVerify(t);
+  void _stopListening(AppTranslations t, Lang lang) {
+    _stopAndVerify(t, lang);
   }
 
   @override
@@ -225,7 +228,7 @@ class _VoiceState extends State<Voice> with TickerProviderStateMixin {
           isListening: _isListening || _isVerifying,
           pulseController: _pulseCtrl,
           onTap: () => _isListening
-              ? _stopListening(t)
+              ? _stopListening(t, lang)
               : _startVoiceRecognition(t, lang),
         ),
         const SizedBox(height: 16),

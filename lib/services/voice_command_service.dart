@@ -7,6 +7,7 @@ class VoiceCommandService {
   Future<VoiceCommandResult> sendVoiceCommand({
     required List<int> audioBytes,
     required String token,
+    String? language,
     String filename = 'command.wav',
   }) async {
     try {
@@ -24,6 +25,10 @@ class VoiceCommandService {
           filename: filename,
         ),
       );
+
+      if (language != null) {
+        request.fields['language'] = language;
+      }
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);

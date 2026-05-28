@@ -24,6 +24,7 @@ class AuthApiService {
 
   Future<VoiceLoginResult> voiceLogin({
     required List<int> audioBytes,
+    String? language,
     String filename = 'audio.wav',
   }) async {
     final request = http.MultipartRequest(
@@ -37,6 +38,9 @@ class AuthApiService {
         filename: filename,
       ),
     );
+    if (language != null) {
+      request.fields['language'] = language;
+    }
 
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);

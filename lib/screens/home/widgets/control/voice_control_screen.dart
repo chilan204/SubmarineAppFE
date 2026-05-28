@@ -220,6 +220,7 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
           final result = await _voiceCommandService.sendVoiceCommand(
             audioBytes: bytes,
             token: provider.authToken!,
+            language: provider.lang == Lang.vi ? 'vi' : 'en',
           );
           if (mounted) {
             _handleApiResponse(result, capturedTranscript, provider);
