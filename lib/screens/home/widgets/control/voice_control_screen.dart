@@ -11,10 +11,11 @@ import '../../../../models/voice_command_response.dart';
 import '../../../../providers/app_provider.dart';
 import '../../../../services/telemetry_service.dart';
 import '../../../../services/voice_command_service.dart';
-import '../../../../theme.dart';
 import '../../../../utils/audio_file.dart';
-import '../../../../widgets/sound_bars.dart';
-import '../../../../widgets/stat_tile.dart';
+import 'widgets/status_bar.dart';
+import '../metrics_panel.dart';
+import 'widgets/command_log.dart';
+import 'widgets/input_area.dart';
 
 // Command parsing — mirrors parseCommand() in VoiceControlScreen.tsx
 Map<String, dynamic> _parseCommand(String text, Lang lang) {
@@ -318,472 +319,57 @@ class _VoiceControlScreenState extends State<VoiceControlScreen> {
 
     return Column(
       children: [
-        // ── Status bar (replaces COMBAT SYS v2.4)
-        _buildStatusBar(t, provider),
+        StatusBar(
+          status: _status,
+          isListening: _isListening,
+        ),
 
-        // ── 4-metric row
-        _buildMetrics(t),
+        MetricsPanel(
+          t: t,
+          depth: _depth,
+          speed: _speed,
+          heading: _heading,
+          pressure: _pressure,
+        ),
 
-        // ── Command log
-        Expanded(child: _buildCommandLog(_commands, t, provider)),
+        Expanded(
+          child: CommandLog(
+            commands: _commands,
+            transcript: _transcript,
+            scrollController: _scrollCtrl,
+            t: t,
+            emptyMessage: provider.lang == Lang.vi
+              ? 'Nhấn microphone hoặc nhập lệnh để điều khiển tàu ngầm'
+              : 'Press microphone or type a command to control the submarine',
+          )
+        ),
 
-        // ── Input area
-        _buildInputArea(t, provider),
+        InputArea(
+          t: t,
+          isListening: _isListening,
+          isSending: _isSending,
+          inputText: _inputText,
+          textController: _textCtrl,
+
+          onMicTap: _isSending
+              ? null
+              : () => _isListening
+              ? _stopListening(provider)
+              : _startListening(provider),
+
+          onSendTap: () => _sendTextCommand(provider),
+
+          onChanged: (value) {
+            setState(() {
+              _inputText = value;
+            });
+          },
+
+          onSubmitted: (_) {
+            _sendTextCommand(provider);
+          },
+        ),
       ],
     );
-  }
-
-  Widget _buildStatusBar(AppTranslations t, AppProvider provider) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      color: AppColors.surface.withValues(alpha: 0.7),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _isListening ? AppColors.accent : AppColors.muted,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _status,
-              style: const TextStyle(color: AppColors.muted, fontSize: 11),
-            ),
-          ),
-
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetrics(AppTranslations t) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: AppColors.accent.withOpacity(0.1)),
-          bottom: BorderSide(color: AppColors.accent.withOpacity(0.1)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-              child: StatTile(
-                  icon: Icons.navigation,
-                  label: t.depth,
-                  value: '${_depth.toStringAsFixed(0)}m',
-                  color: AppColors.blue)),
-          _divider(),
-          Expanded(
-              child: StatTile(
-                  icon: Icons.speed,
-                  label: t.speed,
-                  value: '${_speed.toStringAsFixed(1)} kn',
-                  color: AppColors.accent)),
-          _divider(),
-          Expanded(
-              child: StatTile(
-                  icon: Icons.explore,
-                  label: t.heading,
-                  value: '${_heading.toStringAsFixed(0)}°',
-                  color: AppColors.amber)),
-          _divider(),
-          Expanded(
-              child: StatTile(
-                  icon: Icons.waves,
-                  label: t.pressure,
-                  value: '${_pressure.toStringAsFixed(1)} atm',
-                  color: AppColors.pink)),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() => Container(width: 1, height: 48, color: AppColors.border);
-
-  Widget _buildCommandLog(
-      List<Command> commands, AppTranslations t, AppProvider provider) {
-    if (commands.isEmpty) {
-      return _buildEmptyState(t, provider);
-    }
-
-    return ListView.builder(
-      controller: _scrollCtrl,
-      padding: const EdgeInsets.all(16),
-      itemCount: commands.length + (_transcript.isNotEmpty ? 1 : 0),
-      itemBuilder: (ctx, i) {
-        // Interim transcript bubble
-        if (i == commands.length) {
-          return Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surface.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderBlue),
-              ),
-              child: Text(
-                '$_transcript...',
-                style: const TextStyle(
-                    color: AppColors.blue,
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic),
-              ),
-            ),
-          );
-        }
-
-        final cmd = commands[i];
-        return _CommandBubble(cmd: cmd, t: t);
-      },
-    );
-  }
-
-  Widget _buildEmptyState(AppTranslations t, AppProvider provider) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.waves, size: 48, color: Color(0x3300ffaa)),
-            const SizedBox(height: 16),
-            Text(
-              provider.lang == Lang.vi
-                  ? 'Nhấn microphone hoặc nhập lệnh để điều khiển tàu ngầm'
-                  : 'Press microphone or type a command to control the submarine',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.muted, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: t.quickCmds.map((cmd) {
-                return GestureDetector(
-                  onTap: () => _addCommand(cmd, provider),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Text(cmd,
-                        style: const TextStyle(
-                            color: AppColors.accent, fontSize: 12)),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputArea(AppTranslations t, AppProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.7),
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Mic button
-              _MicButton(
-                isListening: _isListening || _isSending,
-                onTap: _isSending
-                    ? null
-                    : () => _isListening
-                        ? _stopListening(provider)
-                        : _startListening(provider),
-              ),
-              const SizedBox(width: 12),
-
-              // Input field OR sound bars
-              Expanded(
-                child: _isListening
-                    ? Container(
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceAlt.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: const Center(child: SoundBars()),
-                      )
-                    : TextField(
-                        controller: _textCtrl,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: InputDecoration(hintText: t.enterCmd),
-                        onChanged: (v) => setState(() => _inputText = v),
-                        onSubmitted: (_) => _sendTextCommand(provider),
-                      ),
-              ),
-              const SizedBox(width: 12),
-
-              // Send button
-              GestureDetector(
-                onTap: _isListening || _isSending || _inputText.trim().isEmpty
-                    ? null
-                    : () => _sendTextCommand(provider),
-                child: Opacity(
-                  opacity:
-                      _isListening || _isSending || _inputText.trim().isEmpty ? 0.3 : 1.0,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.accentDim,
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Icon(Icons.send,
-                        color: AppColors.accent, size: 20),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────
-// Mic button with animated pulse rings
-// ─────────────────────────────────────────────────────────
-class _MicButton extends StatefulWidget {
-  final bool isListening;
-  final VoidCallback? onTap;
-  const _MicButton({required this.isListening, this.onTap});
-
-  @override
-  State<_MicButton> createState() => _MicButtonState();
-}
-
-class _MicButtonState extends State<_MicButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200));
-  }
-
-  @override
-  void didUpdateWidget(_MicButton old) {
-    super.didUpdateWidget(old);
-    if (widget.isListening && !_ctrl.isAnimating) {
-      _ctrl.repeat();
-    } else if (!widget.isListening) {
-      _ctrl.stop();
-      _ctrl.reset();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: SizedBox(
-        width: 52,
-        height: 52,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (widget.isListening)
-              AnimatedBuilder(
-                animation: _ctrl,
-                builder: (_, __) => Stack(
-                  alignment: Alignment.center,
-                  children: List.generate(3, (i) {
-                    final t = (_ctrl.value + i * 0.33) % 1.0;
-                    return Opacity(
-                      opacity: (1 - t).clamp(0, 0.6),
-                      child: SizedBox(
-                        width: 52 + t * 40,
-                        height: 52 + t * 40,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: AppColors.accent.withOpacity(0.5),
-                                width: 1.5),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: widget.isListening
-                    ? AppColors.accent.withOpacity(0.2)
-                    : AppColors.accentDim,
-                border: Border.all(
-                  color: widget.isListening
-                      ? AppColors.accent
-                      : AppColors.accent.withOpacity(0.3),
-                  width: 2,
-                ),
-              ),
-              child: Icon(
-                widget.isListening ? Icons.mic_off : Icons.mic,
-                color: AppColors.accent,
-                size: 22,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────
-// Command bubble pair (user message + system response)
-// ─────────────────────────────────────────────────────────
-class _CommandBubble extends StatelessWidget {
-  final Command cmd;
-  final AppTranslations t;
-  const _CommandBubble({required this.cmd, required this.t});
-
-  Color get _color {
-    switch (cmd.status) {
-      case CommandStatus.success:
-        return AppColors.accent;
-      case CommandStatus.warning:
-        return AppColors.amber;
-      case CommandStatus.error:
-        return AppColors.red;
-    }
-  }
-
-  IconData get _icon {
-    switch (cmd.status) {
-      case CommandStatus.success:
-        return Icons.check_circle_outline;
-      case CommandStatus.warning:
-        return Icons.warning_amber_rounded;
-      case CommandStatus.error:
-        return Icons.warning_rounded;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // User message (right-aligned)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 280),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1a2a4a).withOpacity(0.8),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(4),
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-                border: Border.all(color: AppColors.borderBlue),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(cmd.text,
-                      style: const TextStyle(
-                          color: Color(0xFF88aaff), fontSize: 13)),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatTime(cmd.timestamp),
-                    style: const TextStyle(
-                        color: AppColors.muted, fontSize: 10),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // System response (left-aligned)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 300),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: _color.withOpacity(0.05),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(4),
-                  topRight: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-                border: Border.all(color: _color.withOpacity(0.2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_icon, color: _color, size: 12),
-                      const SizedBox(width: 4),
-                      Text(
-                        t.systemLabel,
-                        style: TextStyle(
-                            color: _color,
-                            fontSize: 10,
-                            letterSpacing: 1),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(cmd.response,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 13)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
   }
 }

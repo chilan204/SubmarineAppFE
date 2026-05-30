@@ -8,7 +8,11 @@ import '../../../../l10n/translations.dart';
 import '../../../../providers/app_provider.dart';
 import '../../../../services/telemetry_service.dart';
 import '../../../../theme.dart';
-import '../../../../widgets/stat_tile.dart';
+import 'widgets/submarine_popup.dart';
+import 'widgets/coordinate_bar.dart';
+import '../metrics_panel.dart';
+import 'widgets/tracking_pill.dart';
+import 'widgets/submarine_icon.dart';
 
 class GpsMapScreen extends StatefulWidget {
   const GpsMapScreen({super.key});
@@ -131,13 +135,20 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
 
     return Column(
       children: [
-        // ── Row 1: Coordinates
-        _buildCoordinateBar(t),
+        CoordinateBar(
+          latitude: _lat,
+          longitude: _lng,
+          currentPositionLabel: t.currentPos,
+        ),
 
-        // ── Row 2: Metrics (depth, speed, heading, pressure)
-        _buildMetrics(t),
+        MetricsPanel(
+          depth: _depth,
+          speed: _speed,
+          heading: _heading,
+          pressure: _pressure,
+          t: t,
+        ),
 
-        // ── Map
         Expanded(
           child: Stack(
             children: [
@@ -175,7 +186,7 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
                         child: GestureDetector(
                           onTap: () =>
                               setState(() => _showPopup = !_showPopup),
-                          child: _SubmarineIcon(heading: _heading),
+                          child: SubmarineIcon(heading: _heading),
                         ),
                       ),
                     ],
@@ -187,7 +198,7 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
                           point: LatLng(_lat + 0.08, _lng),
                           width: 200,
                           height: 140,
-                          child: _SubPopup(
+                          child: SubmarinePopup(
                             lat: _lat,
                             lng: _lng,
                             depth: _depth,
@@ -213,7 +224,11 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
               Positioned(
                 bottom: 12,
                 left: 12,
-                child: _buildTrackingPill(lang),
+                child: TrackingPill(
+                  isConnected: _wsConnected,
+                  liveText: lang == Lang.vi ? 'TRỰC TIẾP' : 'LIVE',
+                  simulatedText: lang == Lang.vi ? 'MÔ PHỎNG' : 'SIMULATED',
+                ),
               ),
 
               // OSM attribution (bottom-right, required by OSM terms)
@@ -232,227 +247,6 @@ class _GpsMapScreenState extends State<GpsMapScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  /// Row 1 — Latitude / Longitude coordinates
-  Widget _buildCoordinateBar(AppTranslations t) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: AppColors.surface.withValues(alpha: 0.7),
-      child: Row(
-        children: [
-          const Icon(Icons.navigation, color: AppColors.accent, size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${_lat.toStringAsFixed(4)}°N, ${_lng.toStringAsFixed(4)}°E',
-                  style: const TextStyle(color: AppColors.accent, fontSize: 12),
-                ),
-                Text(t.currentPos,
-                    style: const TextStyle(color: AppColors.muted, fontSize: 9)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Row 2 — Depth, Speed, Heading, Pressure (using StatTile)
-  Widget _buildMetrics(AppTranslations t) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: AppColors.accent.withValues(alpha: 0.1)),
-          bottom: BorderSide(color: AppColors.accent.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-              child: StatTile(
-                  icon: Icons.navigation,
-                  label: t.depth,
-                  value: '${_depth.toStringAsFixed(0)}m',
-                  color: AppColors.blue)),
-          _divider(),
-          Expanded(
-              child: StatTile(
-                  icon: Icons.speed,
-                  label: t.speed,
-                  value: '${_speed.toStringAsFixed(1)} kn',
-                  color: AppColors.accent)),
-          _divider(),
-          Expanded(
-              child: StatTile(
-                  icon: Icons.explore,
-                  label: t.heading,
-                  value: '${_heading.toStringAsFixed(0)}°',
-                  color: AppColors.amber)),
-          _divider(),
-          Expanded(
-              child: StatTile(
-                  icon: Icons.waves,
-                  label: t.pressure,
-                  value: '${_pressure.toStringAsFixed(1)} atm',
-                  color: AppColors.pink)),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() => Container(width: 1, height: 48, color: AppColors.border);
-
-  Widget _buildTrackingPill(Lang lang) {
-    final statusText = _wsConnected
-        ? (lang == Lang.vi ? 'TRỰC TIẾP' : 'LIVE')
-        : (lang == Lang.vi ? 'MÔ PHỎNG' : 'SIMULATED');
-    final statusColor = _wsConnected ? AppColors.accent : AppColors.amber;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: statusColor,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            statusText,
-            style: TextStyle(
-                color: statusColor, fontSize: 10, letterSpacing: 1),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────
-// Submarine icon — drawn with CustomPaint (replaces SVG)
-// ──────────────────────────────────────────────────────
-class _SubmarineIcon extends StatelessWidget {
-  final double heading;
-  const _SubmarineIcon({required this.heading});
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: (heading - 90) * math.pi / 180,
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: CustomPaint(painter: _SubmarinePainter()),
-      ),
-    );
-  }
-}
-
-class _SubmarinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-
-    // Sonar ping ring
-    canvas.drawCircle(
-      Offset(cx, cy),
-      16,
-      Paint()
-        ..color = AppColors.accent.withValues(alpha: 0.3)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-
-    // Hull (ellipse)
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx, cy + 2), width: 28, height: 12),
-      Paint()..color = AppColors.accent.withValues(alpha: 0.9),
-    );
-
-    // Conning tower
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(cx, cy - 4), width: 8, height: 10),
-        const Radius.circular(2),
-      ),
-      Paint()..color = const Color(0xFF00cc88),
-    );
-
-    // Center dot
-    canvas.drawCircle(
-      Offset(cx, cy + 2),
-      3,
-      Paint()..color = AppColors.background,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_SubmarinePainter _) => false;
-}
-
-// ──────────────────────────────────────────────────────
-// Info popup shown when submarine marker is tapped
-// ──────────────────────────────────────────────────────
-class _SubPopup extends StatelessWidget {
-  final double lat, lng, depth, speed, heading, pressure;
-  final AppTranslations t;
-  const _SubPopup({
-    required this.lat,
-    required this.lng,
-    required this.depth,
-    required this.speed,
-    required this.heading,
-    required this.pressure,
-    required this.t,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🚢 NAUTICOM SUB-1',
-              style: TextStyle(
-                  color: AppColors.accent,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text('${lat.toStringAsFixed(4)}°N, ${lng.toStringAsFixed(4)}°E',
-              style: const TextStyle(color: Colors.white70, fontSize: 10)),
-          Text('${t.depth}: ${depth.toStringAsFixed(0)}m',
-              style: const TextStyle(color: Colors.white70, fontSize: 10)),
-          Text('${t.speed}: ${speed.toStringAsFixed(1)} kn',
-              style: const TextStyle(color: Colors.white70, fontSize: 10)),
-          Text('${t.heading}: ${heading.toStringAsFixed(0)}°',
-              style: const TextStyle(color: Colors.white70, fontSize: 10)),
-          Text('${t.pressure}: ${pressure.toStringAsFixed(1)} atm',
-              style: const TextStyle(color: Colors.white70, fontSize: 10)),
-        ],
-      ),
     );
   }
 }

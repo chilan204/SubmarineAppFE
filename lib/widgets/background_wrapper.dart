@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
-/// Same background image + dark overlay as BackgroundWrapper.tsx
-const _bgUrl =
-    'https://vcdn1-vnexpress.vnecdn.net/2021/09/15/dh-bach-khoa-hn-1631681053-7873-1631681129.jpg?w=1200&h=0&q=100&dpr=1&fit=crop&s=k9j2tKkGTVtI12aYpD1mgA';
 
 class BackgroundWrapper extends StatelessWidget {
   final Widget child;
@@ -14,10 +11,9 @@ class BackgroundWrapper extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.network(
-          _bgUrl,
+        Image.asset(
+          'assets/images/login_bg.jpg',
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(color: AppColors.background),
         ),
         Container(color: AppColors.background.withValues(alpha: 0.8)),
         child,

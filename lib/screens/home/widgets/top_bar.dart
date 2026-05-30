@@ -24,23 +24,37 @@ class HomeTopBar extends StatelessWidget {
         border: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
-        spacing: 10,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.accentDim,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Text(
-              provider.t.roleTitle(provider.role),
-              style: const TextStyle(
-                  color: AppColors.accent, fontSize: 11, letterSpacing: 1),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: 0.8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentDim,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Text(
+                    provider.t.roleTitle(provider.role),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
 
-          // Center: mission timer
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -59,42 +73,63 @@ class HomeTopBar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                   style: const TextStyle(
-                      color: AppColors.muted, fontSize: 9, letterSpacing: 1),
+                    color: AppColors.muted,
+                    fontSize: 9,
+                    letterSpacing: 1,
+                  ),
                 ),
               ],
             ),
           ),
 
-          LangToggle(
-            lang: provider.lang,
-            onChanged: (l) => context.read<AppProvider>().setLang(l),
-          ),
-
-          GestureDetector(
-            onTap: () => context.read<AppProvider>().logout(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: AppColors.red.withValues(alpha: 0.3)),
-              ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.logout,
-                      color: AppColors.red, size: 16),
-                  if (MediaQuery.of(context).size.width >= 640) ...[
-                    const SizedBox(width: 4),
-                    Text(
-                      t.logout,
-                      style: TextStyle(
-                        color: AppColors.red.withValues(alpha: 0.7),
-                        fontSize: 11,
+                  LangToggle(
+                    lang: provider.lang,
+                    onChanged: (l) =>
+                        context.read<AppProvider>().setLang(l),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () =>
+                        context.read<AppProvider>().logout(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.red.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.logout,
+                            color: AppColors.red,
+                            size: 16,
+                          ),
+                          if (MediaQuery.of(context).size.width >= 640) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              t.logout,
+                              style: TextStyle(
+                                color: AppColors.red.withValues(alpha: 0.7),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),

@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:submarine_flutter/screens/login/widgets/header.dart';
-import 'package:submarine_flutter/screens/login/widgets/password/password.dart';
-import 'package:submarine_flutter/screens/login/widgets/select.dart';
-import 'package:submarine_flutter/screens/login/widgets/voice/voice.dart';
 import '../../providers/app_provider.dart';
 import '../../theme.dart';
 import '../../widgets/background_wrapper.dart';
 import '../../widgets/lang_toggle.dart';
-
-// BackgroundWrapper is applied in main.dart — login adds grid/sonar overlay only.
+import 'widgets/login_mode_content.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,13 +14,11 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-enum _LoginMode { select, password, voice }
-
 class _LoginScreenState extends State<LoginScreen> {
-  _LoginMode _mode = _LoginMode.select;
+  LoginMode _mode = LoginMode.select;
 
   void _resetToSelect() {
-    setState(() => _mode = _LoginMode.select);
+    setState(() => _mode = LoginMode.select);
   }
 
   @override
@@ -53,7 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 250),
-                      child: _buildModeContent(),
+                      child: LoginModeContent(
+                        mode: _mode,
+                        onBackToSelect: _resetToSelect,
+                        onVoiceTap: () => setState(() => _mode = LoginMode.voice),
+                        onPasswordTap: () => setState(() => _mode = LoginMode.password),
+                      ),
                     ),
                   ),
                 ],
@@ -71,19 +70,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildModeContent() {
-    switch (_mode) {
-      case _LoginMode.select:
-        return Select(
-          onVoiceTap: () => setState(() => _mode = _LoginMode.voice),
-          onPasswordTap: () => setState(() => _mode = _LoginMode.password),
-        );
-      case _LoginMode.password:
-        return Password(onBack: _resetToSelect);
-      case _LoginMode.voice:
-        return Voice(onBack: _resetToSelect);
-    }
   }
 }
