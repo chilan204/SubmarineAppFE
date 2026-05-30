@@ -1,4 +1,4 @@
-# NAUTICOM — Submarine Control (Flutter)
+# Submarine Control (Flutter)
 
 Phiên bản Flutter/Dart của ứng dụng **Submarine Control App** (React + Vite), giữ nguyên giao diện và luồng chức năng.
 

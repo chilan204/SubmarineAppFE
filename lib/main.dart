@@ -25,7 +25,7 @@ class NauticomApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AppProvider(),
       child: MaterialApp(
-        title: 'NAUTICOM — Submarine Control',
+        title: 'Submarine Control',
         debugShowCheckedModeBanner: false,
         theme: appTheme,
         home: const _AppRoot(),

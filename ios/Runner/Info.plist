@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>NAUTICOM</string>
+	<string>Submarine Control</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -47,8 +47,8 @@
 	<true/>
 	<!-- Required by speech_to_text for voice recognition -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>NAUTICOM requires microphone access for voice command control.</string>
+	<string>Submarine Control requires microphone access for voice command control.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>NAUTICOM uses speech recognition for submarine command input.</string>
+	<string>Submarine Control uses speech recognition for submarine command input.</string>
 </dict>
 </plist>
