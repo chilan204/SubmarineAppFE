@@ -57,7 +57,7 @@ class HistoryCommandRow extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: AppColors.accent.withOpacity(0.05),
+              color: AppColors.accent.withValues(alpha: 0.05),
             ),
           ),
         ),
@@ -67,9 +67,9 @@ class HistoryCommandRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: _color.withOpacity(0.05),
+                color: _color.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _color.withOpacity(0.2)),
+                border: Border.all(color: _color.withValues(alpha: 0.2)),
               ),
               child: Icon(_icon, color: _color, size: 16),
             ),

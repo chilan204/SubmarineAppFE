@@ -18,7 +18,7 @@ class HistoryFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      color: AppColors.surface.withOpacity(0.7),
+      color: AppColors.surface.withValues(alpha: 0.7),
       child: Row(
         children: [
           Text(

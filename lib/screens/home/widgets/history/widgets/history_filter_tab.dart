@@ -34,11 +34,11 @@ class HistoryFilterTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isActive
-                  ? activeColor.withOpacity(0.4)
-                  : AppColors.border.withOpacity(0.3),
+                  ? activeColor.withValues(alpha: 0.4)
+                  : AppColors.border.withValues(alpha: 0.3),
             ),
             color: isActive
-                ? activeColor.withOpacity(0.1)
+                ? activeColor.withValues(alpha: 0.1)
                 : Colors.transparent,
           ),
           child: Column(

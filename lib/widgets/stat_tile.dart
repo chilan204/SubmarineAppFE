@@ -19,7 +19,7 @@ class StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.surface.withOpacity(0.7),
+      color: AppColors.surface.withValues(alpha: 0.7),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       child: Column(
         mainAxisSize: MainAxisSize.min,

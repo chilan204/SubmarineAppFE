@@ -19,7 +19,7 @@ class HomeTabBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0a1628).withOpacity(0.7),
+        color: const Color(0xFF0a1628).withValues(alpha: 0.7),
         border: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
@@ -63,7 +63,7 @@ class _HomeTabBarItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.accent.withOpacity(0.05)
+              ? AppColors.accent.withValues(alpha: 0.05)
               : Colors.transparent,
           border: Border(
             bottom: BorderSide(

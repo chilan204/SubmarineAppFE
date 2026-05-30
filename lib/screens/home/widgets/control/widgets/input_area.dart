@@ -41,7 +41,7 @@ class InputArea extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.7),
+        color: AppColors.surface.withValues(alpha: 0.7),
         border: const Border(
           top: BorderSide(color: AppColors.border),
         ),
@@ -63,7 +63,7 @@ class InputArea extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color:
-                    AppColors.surfaceAlt.withOpacity(0.8),
+                    AppColors.surfaceAlt.withValues(alpha: 0.8),
                     borderRadius:
                     BorderRadius.circular(10),
                     border: Border.all(

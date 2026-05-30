@@ -73,7 +73,7 @@ class _MicButtonState extends State<MicButton>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppColors.accent.withOpacity(0.5),
+                              color: AppColors.accent.withValues(alpha: 0.5),
                               width: 1.5,
                             ),
                           ),
@@ -89,12 +89,12 @@ class _MicButtonState extends State<MicButton>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: widget.isListening
-                    ? AppColors.accent.withOpacity(0.2)
+                    ? AppColors.accent.withValues(alpha: 0.2)
                     : AppColors.accentDim,
                 border: Border.all(
                   color: widget.isListening
                       ? AppColors.accent
-                      : AppColors.accent.withOpacity(0.3),
+                      : AppColors.accent.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),

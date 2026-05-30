@@ -27,7 +27,7 @@ class LoginTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         prefixIcon:
-            Icon(icon, color: AppColors.blue.withOpacity(0.5), size: 18),
+            Icon(icon, color: AppColors.blue.withValues(alpha: 0.5), size: 18),
         suffixIcon: suffixIcon,
       ),
       onChanged: onChanged,

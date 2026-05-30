@@ -37,7 +37,7 @@ class HistoryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.surface.withOpacity(0.7),
+      color: AppColors.surface.withValues(alpha: 0.7),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(
         children: [

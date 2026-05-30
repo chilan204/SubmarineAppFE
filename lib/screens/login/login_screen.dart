@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 32),
                   Container(
                     decoration: BoxDecoration(
-                      color: AppColors.surface.withOpacity(0.85),
+                      color: AppColors.surface.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.border),
                     ),

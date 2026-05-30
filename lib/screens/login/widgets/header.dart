@@ -20,7 +20,7 @@ class Header extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.accentDim,
-            border: Border.all(color: AppColors.accent.withOpacity(0.5), width: 2),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.5), width: 2),
           ),
           child: const Icon(Icons.security, color: AppColors.accent, size: 50),
         ),

@@ -41,7 +41,7 @@ class MicButton extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: AppColors.accent.withOpacity(0.4),
+                                  color: AppColors.accent.withValues(alpha: 0.4),
                                   width: 1.5),
                             ),
                           ),
@@ -59,12 +59,12 @@ class MicButton extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isListening
-                    ? AppColors.accent.withOpacity(0.2)
+                    ? AppColors.accent.withValues(alpha: 0.2)
                     : AppColors.accentDim,
                 border: Border.all(
                   color: isListening
                       ? AppColors.accent
-                      : AppColors.accent.withOpacity(0.3),
+                      : AppColors.accent.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),

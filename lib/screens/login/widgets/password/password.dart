@@ -100,7 +100,7 @@ class _PasswordState extends State<Password> {
           suffixIcon: IconButton(
             icon: Icon(
               _showPassword ? Icons.visibility_off : Icons.visibility,
-              color: AppColors.blue.withOpacity(0.5),
+              color: AppColors.blue.withValues(alpha: 0.5),
               size: 20,
             ),
             onPressed: () => setState(() => _showPassword = !_showPassword),

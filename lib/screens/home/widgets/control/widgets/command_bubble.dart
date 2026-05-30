@@ -52,7 +52,7 @@ class CommandBubble extends StatelessWidget {
                 vertical: 8,
               ),
               decoration: BoxDecoration(
-                color: const Color(0xFF1a2a4a).withOpacity(0.8),
+                color: const Color(0xFF1a2a4a).withValues(alpha: 0.8),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(4),
@@ -95,7 +95,7 @@ class CommandBubble extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 300),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _color.withOpacity(0.05),
+                  color: _color.withValues(alpha: 0.05),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(4),
                     topRight: Radius.circular(12),
@@ -103,7 +103,7 @@ class CommandBubble extends StatelessWidget {
                     bottomRight: Radius.circular(12),
                   ),
                   border: Border.all(
-                    color: _color.withOpacity(0.2),
+                    color: _color.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Column(
